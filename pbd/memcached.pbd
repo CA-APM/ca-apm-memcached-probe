@@ -1,0 +1,97 @@
+#================================================================================================
+# Instrumentation for memcached
+# Author: Guenter Grossberger (guenter.grossberger@ca.com)
+# Date: 2017/6/6
+# Version: 1.0.0
+# Changes:
+#     DATE     |       AUTHOR        |       COMMENTS
+#------------------------------------------------------------------------------------------------
+# 2017/6/6     | Guenter Grossberger | initial version
+#================================================================================================
+
+
+#================================================================================================
+#
+# BlamePointTracer for every public method + command()
+#
+#================================================================================================
+
+SetFlag: MemcachedTracing
+TurnOn: MemcachedTracing
+IdentifyClassAs: memcached MemcachedTracing
+TraceOneMethodIfFlagged: MemcachedTracing get NodeBlamePointTracer "Memcached|{method}"
+TraceOneMethodIfFlagged: MemcachedTracing set NodeBlamePointTracer "Memcached|{method}"
+TraceOneMethodIfFlagged: MemcachedTracing add NodeBlamePointTracer "Memcached|{method}"
+TraceOneMethodIfFlagged: MemcachedTracing touch NodeBlamePointTracer "Memcached|{method}"
+TraceOneMethodIfFlagged: MemcachedTracing gets NodeBlamePointTracer "Memcached|{method}"
+TraceOneMethodIfFlagged: MemcachedTracing getMulti NodeBlamePointTracer "Memcached|{method}"
+TraceOneMethodIfFlagged: MemcachedTracing replace NodeBlamePointTracer "Memcached|{method}"
+TraceOneMethodIfFlagged: MemcachedTracing append NodeBlamePointTracer "Memcached|{method}"
+TraceOneMethodIfFlagged: MemcachedTracing prepend NodeBlamePointTracer "Memcached|{method}"
+TraceOneMethodIfFlagged: MemcachedTracing incr NodeBlamePointTracer "Memcached|{method}"
+TraceOneMethodIfFlagged: MemcachedTracing decr NodeBlamePointTracer "Memcached|{method}"
+TraceOneMethodIfFlagged: MemcachedTracing del NodeBlamePointTracer "Memcached|{method}"
+TraceOneMethodIfFlagged: MemcachedTracing command NodeBlamePointTracer "Memcached|{method}"
+
+
+#================================================================================================
+#
+# Get Backend metric with server:port from connect()
+#
+#================================================================================================
+
+SetTracerClassMapping: MemcachedTracer com.wily.introscope.agent.trace.hc2.BlamePointTracer com.wily.introscope.probebuilder.validate.ResourceNameValidator
+SetTracerParameter: MemcachedTracer nameformatter com.wily.introscope.agent.trace.nodejs.nameformatter.ReplaceParamsNameFormatter
+
+SetFlag: MemcachedConnectTracing
+TurnOn: MemcachedConnectTracing
+IdentifyClassAs: memcached MemcachedConnectTracing
+TraceOneMethodIfFlagged: MemcachedConnectTracing connect MemcachedTracer "Backends|memcached on {server}"
+
+#SetTracerClassMapping: MemcachedTracer com.wily.introscope.agent.trace.collector.ParamsDecoratorBlamePointTracer com.wily.introscope.probebuilder.validate.ResourceNameValidator
+#SetTracerParameter: MemcachedTracer nameformatter com.wily.introscope.agent.trace.nodejs.nameformatter.ReplaceParamsNameFormatter
+#SetTracerParameter: MemcachedTracer paramKeys "server"
+
+
+#================================================================================================
+#
+# Set server property in trace
+#
+#================================================================================================
+
+SetTracerClassMapping: MemcachedParamsDecoratorTracer com.wily.introscope.agent.trace.nodejs.tracer.TransactionTraceParamsDecoratorTracer com.wily.introscope.probebuilder.validate.ResourceNameValidator
+SetTracerParameter: MemcachedParamsDecoratorTracer paramKeys server
+
+TraceAllMethodsIfFlagged: MemcachedConnectTracing MemcachedParamsDecoratorTracer "na"
+
+
+#================================================================================================
+#
+# Create error metrics
+#
+#================================================================================================
+
+SetTracerClassMapping: MemcachedErrorReporter com.wily.introscope.agent.trace.hc2.MethodThrewErrorReportingTracer com.wily.introscope.probebuilder.validate.MetricNameValidator
+
+SetTracerParameter: MemcachedErrorReporter reentrancy instance
+SetTracerParameter: MemcachedErrorReporter useblame false
+SetTracerParameter: MemcachedErrorReporter ownmetric false
+TraceOneMethodIfFlagged: MemcachedTracing get MemcachedErrorReporter "Memcached|{method}:Errors Per Interval"
+TraceOneMethodIfFlagged: MemcachedTracing set MemcachedErrorReporter "Memcached|{method}:Errors Per Interval"
+TraceOneMethodIfFlagged: MemcachedTracing add MemcachedErrorReporter "Memcached|{method}:Errors Per Interval"
+TraceOneMethodIfFlagged: MemcachedTracing touch MemcachedErrorReporter "Memcached|{method}:Errors Per Interval"
+TraceOneMethodIfFlagged: MemcachedTracing gets MemcachedErrorReporter "Memcached|{method}:Errors Per Interval"
+TraceOneMethodIfFlagged: MemcachedTracing getMulti MemcachedErrorReporter "Memcached|{method}:Errors Per Interval"
+TraceOneMethodIfFlagged: MemcachedTracing replace MemcachedErrorReporter "Memcached|{method}:Errors Per Interval"
+TraceOneMethodIfFlagged: MemcachedTracing append MemcachedErrorReporter "Memcached|{method}:Errors Per Interval"
+TraceOneMethodIfFlagged: MemcachedTracing prepend MemcachedErrorReporter "Memcached|{method}:Errors Per Interval"
+TraceOneMethodIfFlagged: MemcachedTracing incr MemcachedErrorReporter "Memcached|{method}:Errors Per Interval"
+TraceOneMethodIfFlagged: MemcachedTracing decr MemcachedErrorReporter "Memcached|{method}:Errors Per Interval"
+TraceOneMethodIfFlagged: MemcachedTracing del MemcachedErrorReporter "Memcached|{method}:Errors Per Interval"
+TraceOneMethodIfFlagged: MemcachedTracing command MemcachedErrorReporter "Memcached|{method}:Errors Per Interval"
+
+
+SetTracerClassMapping: MemcachedConnectErrorReporter com.wily.introscope.agent.trace.hc2.MethodThrewErrorReportingTracer com.wily.introscope.probebuilder.validate.MetricNameValidator
+SetTracerParameter: MemcachedConnectErrorReporter nameformatter com.wily.introscope.agent.trace.nodejs.nameformatter.ReplaceParamsNameFormatter
+
+TraceOneMethodIfFlagged: MemcachedConnectTracing connect MemcachedConnectErrorReporter "Backends|memcached on {server}:Errors Per Interval"
